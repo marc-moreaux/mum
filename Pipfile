@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+
+[packages]
+pip = "*"
+numpy = "*"
+face-recognition = "*"
+ipython = "*"
+jupyter = "*"
+opencv-python = "*"
+matplotlib = "*"
+moviepy = "*"
+requests = "*"
+
+[requires]
+python_version = "2.7"
