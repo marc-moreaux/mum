@@ -15,6 +15,9 @@ opencv-python = "*"
 matplotlib = "*"
 moviepy = "*"
 requests = "*"
+tornado = "*"
+dlib = "*"
+scipy = "*"
 
 [requires]
 python_version = "2.7"
