@@ -83,14 +83,14 @@ def get_faces_from_path(img_path):
     return faces
 
 
-def mum_in_image(img, mum_encodings, debug=False, append_encoding=True):
+def mum_in_image(img, mum_encodings, debug=False, append_encoding=True, precision=.4):
     img = reduce_image(img)
     faces_loc = frec.face_locations(img, 1, 'cnn')
     img_encodings = frec.face_encodings(img, faces_loc)
     for encoding, loc in zip(img_encodings, faces_loc):
-        is_match = frec.compare_faces(mum_encodings, encoding, .5)
+        is_match = frec.compare_faces(mum_encodings, encoding, precision)
         if True in is_match:
-            if append_encoding is True:
+            if append_encoding:
                 mum_encodings.append(encoding)
             if debug is True:
                 t, r, b, l = loc
@@ -123,11 +123,11 @@ def find_mum_in_video(video_path, found_video_paths, mum_encodings, fps=2):
     print 'finished with' + video_path
 
 
-def find_mum_in_image(image_path, found_image_paths, mum_encodings):
+def find_mum_in_image(image_path, found_image_paths, mum_encodings, precision=.4):
     try:
         img = frec.load_image_file(image_path)
         img = reduce_image(img)
-        if mum_in_image(img, mum_encodings):
+        if mum_in_image(img, mum_encodings, precision=precision):
             if found_image_paths is not None:
                 found_image_paths.append(image_path)        
                 f = open("mum_paths.txt","a+")
@@ -150,7 +150,7 @@ def read_video_description(video_descriptions='mum_video_paths.txt', export_path
     if not os.path.isdir(export_path):
         os.mkdir(export_path)
     
-    with open("mum_video_paths.txt","r") as f:
+    with open(video_descriptions, "r") as f:
         lines = f.readlines()
     
     for line in lines:
@@ -158,41 +158,84 @@ def read_video_description(video_descriptions='mum_video_paths.txt', export_path
         line = eval(line)
         video_path = line[0]
         times = np.array(line[1:])
-        seqs = times_to_seq(times)
+        seqs = times_to_seq2(times, 6)
+        print video_path, '\n', times, '\n', seqs, '\n'
         for i, (start, end) in enumerate(seqs):
             clip_name = video_path.split('/')[-1]
             clip_name = '.'.join(clip_name.split('.')[:-1])
             clip_name = clip_name + str(i) + '.mp4'
             clip = []
             clip.append(VideoFileClip(video_path))
-            clip.append(clip[-1].resize(height=400))
+            end = min(clip[0].duration, end)
+            clip.append(clip[-1].resize(height=480))
             clip.append(clip[-1].subclip(start, end))
             clip[-1].write_videofile(os.path.join(export_path, clip_name))
             for _clip in clip:  # mandatory to flush memory :/
                 _clip.close()
 
-     
-def times_to_seq(times, max_padding=5, time_thld=3, time_augment=2):
+
+def times_to_seq(times, max_padding=5, time_thld=2, time_augment=3):
     '''
     max_padding: Accepted padding (in sec) between two recognized images
     time_thld: the minimum time between start and end
     time_augment: augment sequence by x sec'''
     cur_idx = 0
     start = times[0]
-    end = times[1]
+    end = times[0]
 
     seqs = []
     while cur_idx + 1 < len(times):
         next_idx = cur_idx + 1
         if times[next_idx] - times[cur_idx] < max_padding:
             end = times[cur_idx]
+            if next_idx + 1 == len(times):
+                start = max(0, start - time_augment)
+                end = min(end + time_augment, times[-1])
+                seqs.append((start, end))
         else:
             if end - start > time_thld:
                 start = max(0, start - time_augment)
                 end = min(end + time_augment, times[-1])
                 seqs.append((start, end))
             start = times[next_idx]
-        cur_idx +=1
+        cur_idx += 1
     
     return seqs
 
+
+def times_to_seq2(times, time_augment=5):
+    '''
+    time_augment: augment sequence by x sec
+    '''
+    cur_idx = 0
+    start = times[0]
+    end = times[0]
+    seqs = []
+
+    def append(start, end):
+        ''' append a time segment to the <seqs> list
+        '''
+        start = max(0, start - time_augment)
+        # end = min(end + time_augment, times[-1])
+        end = end + time_augment
+        seqs.append((start, end))
+
+    while cur_idx + 1 < len(times):
+        next_idx = cur_idx + 1
+
+        # Check if time_indexes are close
+        if times[next_idx] - times[cur_idx] < time_augment * 2:
+            end = times[next_idx]
+        # If not, append a time segment
+        else:
+            append(start, end)
+            start = times[next_idx]
+            end = times[next_idx]
+
+        # End condition
+        if next_idx + 1 == len(times):
+            append(start, end)
+
+        cur_idx += 1
+    
+    return seqs

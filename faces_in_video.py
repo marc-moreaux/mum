@@ -16,7 +16,7 @@ mum_dir = './faces_to_reco/'
 mum_encodings = utils.get_faces_encoding_from_dir(mum_dir, debug=False)
 mum_paths = utils.load_mum_paths()
 for image_path in mum_paths:
-    utils.find_mum_in_image(image_path, None, mum_encodings)
+    utils.find_mum_in_image(image_path, None, mum_encodings, precision=.3)
 
 print 'there is {} encodings of mum'.format(len(mum_encodings))
 
@@ -35,17 +35,20 @@ for image_path in picture_paths:
 reload(utils)
 video_paths = []
 for root in [
-    '/media/moreaux/3tb_disk/cam_maman',
-    '/media/moreaux/3tb_disk/cam_maman_old',
-    '/media/moreaux/3tb_disk/mes photos',
-    '/media/moreaux/3tb_disk/Data_SSD',
-    '/media/moreaux/Disk2/Dropbox']:
+    #'/media/moreaux/3tb_disk/cam_maman',
+    #'/media/moreaux/3tb_disk/cam_maman_old',
+    #'/media/moreaux/3tb_disk/mes photos',
+    #'/media/moreaux/3tb_disk/Data_SSD',
+    #'/media/moreaux/Disk2/Dropbox',
+    #'/media/moreaux/3tb_disk/videos',
+    '/media/moreaux/Disk2/Dropbox/videoNico']:
     video_paths += utils.get_ext_from_path(root, ['.mp4', 'mpg', '.MTS', '.mts', '.MP4'])
 print ('searching in {} videos'.format(len(video_paths)))
 
+# /media/moreaux/Disk2/Dropbox/videoNico/ increase FPS to get mum !!
 found_video_paths = []
 for video_path in video_paths:
-    utils.find_mum_in_video(video_path, found_video_paths, mum_encodings)
+    utils.find_mum_in_video(video_path, found_video_paths, mum_encodings, fps=2)
 
 
 #%% TEST
